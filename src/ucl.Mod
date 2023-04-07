@@ -5,22 +5,23 @@ IMPORT
   SYSTEM;
 
 TYPE
-  Parser*      = SYSTEM.ADDRESS;
-  ParserFlag*  = HUGEINT;
-  ParserFlags* = SYSTEM.SET64;
+  Parser*       = SYSTEM.ADDRESS;
+  ParserFlag    = HUGEINT;
+  ParserFlags*  = SYSTEM.SET64;
 
-  Object*      = SYSTEM.ADDRESS;
+  Object*       = SYSTEM.ADDRESS;
+  StringPtr     = SYSTEM.ADDRESS;
 
 
 VAR
-  ParserDefault-          : HUGEINT;
-  ParserKeyLowercase-     : HUGEINT;
-  ParserZeroCopy-         : HUGEINT;
-  ParserNoTime-           : HUGEINT;
-  ParserNoImplicitArrays- : HUGEINT;
-  ParserSaveComments-     : HUGEINT;
-  ParserDisableMacro-     : HUGEINT;
-  ParserNoFileVars-       : HUGEINT;
+  ParserDefault-          : ParserFlag;
+  ParserKeyLowercase-     : ParserFlag;
+  ParserZeroCopy-         : ParserFlag;
+  ParserNoTime-           : ParserFlag;
+  ParserNoImplicitArrays- : ParserFlag;
+  ParserSaveComments-     : ParserFlag;
+  ParserDisableMacro-     : ParserFlag;
+  ParserNoFileVars-       : ParserFlag;
 
 PROCEDURE -Aincludeucl '#include <ucl.h>';
 
@@ -29,16 +30,16 @@ PROCEDURE -uclParserNew(flags: ParserFlag): Parser
 
 PROCEDURE NewParser*(VAR parser: Parser; flagset: ParserFlags);
 VAR
-  flags : HUGEINT;
+  flags : ParserFlag;
 BEGIN
   flags  := SYSTEM.VAL(ParserFlag, flagset);
   parser := uclParserNew(flags);
 END NewParser;
 
-PROCEDURE -uclParserAddFile(VAR parser: Parser; VAR file: ARRAY OF CHAR): INTEGER
+PROCEDURE -uclParserAddFile(parser: Parser; file: ARRAY OF CHAR): INTEGER
 'ucl_parser_add_file(parser, file)';
 
-PROCEDURE AddFile*(VAR parser: Parser; VAR file: ARRAY OF CHAR): BOOLEAN;
+PROCEDURE AddFile*(parser: Parser; file: ARRAY OF CHAR): BOOLEAN;
 BEGIN
   RETURN uclParserAddFile(parser, file) # 0
 END AddFile;
@@ -46,44 +47,62 @@ END AddFile;
 PROCEDURE -uclParserAddString(parser: Parser; VAR string: ARRAY OF CHAR): INTEGER
 "ucl_parser_add_string(parser, string, 0)";
 
-PROCEDURE AddString*(VAR parser: Parser; string: ARRAY OF CHAR): BOOLEAN;
+PROCEDURE AddString*(parser: Parser; string: ARRAY OF CHAR): BOOLEAN;
 BEGIN
   RETURN uclParserAddString(parser, string) # 0;
 END AddString;
 
-PROCEDURE -uclParserGetObject(VAR parser: Parser): Object
+PROCEDURE -uclParserGetObject(parser: Parser): Object
 "ucl_parser_get_object(parser)";
 
-PROCEDURE GetObject*(VAR parser: Parser): Object;
+PROCEDURE GetObject*(parser: Parser; VAR object: Object): BOOLEAN;
+VAR
+  objectInternal : Object;
 BEGIN
-  RETURN uclParserGetObject(parser);
+  objectInternal := uclParserGetObject(parser);
+  IF objectInternal # 0 THEN
+    object := objectInternal;
+    RETURN TRUE
+  ELSE
+    RETURN FALSE
+  END;
 END GetObject;
 
-PROCEDURE -uclObjectFindKey(VAR object: Object; VAR key: ARRAY OF CHAR): Object
+PROCEDURE -uclObjectFindKey(object: Object; key: ARRAY OF CHAR): Object
 "ucl_object_find_key(object, key)";
 
-PROCEDURE FindKey*(VAR object: Object; VAR key: ARRAY OF CHAR): Object;
+PROCEDURE FindKey*(objectIn: Object; key: ARRAY OF CHAR; VAR objectOut: Object ): BOOLEAN;
+VAR
+  objectInternal : Object;
 BEGIN
-  RETURN uclObjectFindKey(object, key);
+  objectInternal := uclObjectFindKey(objectIn, key);
+  IF objectInternal # 0 THEN
+    objectOut := objectInternal;
+    RETURN TRUE
+  ELSE
+    RETURN FALSE
+  END;
 END FindKey;
 
-PROCEDURE -uclObjectToString(VAR object: Object): SYSTEM.ADDRESS
+PROCEDURE -uclObjectToString(object: Object): StringPtr
 "ucl_object_tostring(object)";
 
-PROCEDURE ToString*(VAR object: Object; VAR string: ARRAY OF CHAR);
+PROCEDURE ToString*(object: Object; VAR string: ARRAY OF CHAR): BOOLEAN;
 VAR
   objstr  : ARRAY 64 OF CHAR;
   i       : INTEGER;
   ch      : CHAR;
-  objstrp : SYSTEM.ADDRESS;
+  objstrp : StringPtr;
 BEGIN
   i := 0;
   objstrp := uclObjectToString(object);
   REPEAT
     SYSTEM.GET(objstrp + i, ch);
     objstr[i] := ch;
-    Out.Char(ch); Out.Ln;
+    INC(i)
   UNTIL (ch = 0X) OR (i >= LEN(objstr) - 1);
+  COPY(objstr, string);
+  RETURN TRUE
 END ToString;
 
 BEGIN

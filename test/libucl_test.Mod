@@ -16,27 +16,60 @@ VAR
 
 BEGIN
   ucl.NewParser(parser, {0});
-  Out.String("Parser created..."); Out.Ln;
-  IF ucl.AddString(parser, "foo = bar")  THEN
-    Out.String("AddString done..."); Out.Ln;
+  Out.String("= Parser created..."); Out.Ln;
+
+  IF ~ ucl.AddFile(parser, "example.ucl") THEN
+    Out.String("! AddFile Failed"); Out.Ln;
+    HALT(1)
   ELSE
-    Out.String("Failed to AddString"); Out.Ln;
+    Out.String("= Parsed File `example.ucl`"); Out.Ln;
   END;
 
-  obj := ucl.GetObject(parser);
-  key := "foo";
-  objfoo := ucl.FindKey(obj, key);
-  ucl.ToString(objfoo, val);
-
-
-(*
-  path := "example.ucl";
-  IF ucl.AddFile(parser, path) THEN
-    Out.String("Parsed File"); Out.Ln;
+  IF ~ ucl.AddString(parser, "baz = bat")  THEN
+    Out.String("! Failed to AddString");
+    HALT(1)
   ELSE
-    Out.String("AddFile Failed"); Out.Ln;
+    Out.String("= AddString (baz = bat) done...")
   END;
-*)
+  Out.Ln;
+
+  IF ~ ucl.GetObject(parser, obj) THEN
+    Out.String("! Could not GetObject");
+    HALT(1)
+  ELSE
+    Out.String("= Get Object done...")
+  END;
+  Out.Ln;
+
+  Out.String("? Looking for object `foo`"); Out.Ln;
+  IF ~ ucl.FindKey(obj, "foo", objfoo) THEN
+    Out.String("! Could not FindKey `foo`");
+    HALT(1)
+  ELSE
+    Out.String("= Found object with key `foo`")
+  END;
+  Out.Ln;
+
+  IF ~ ucl.ToString(objfoo, val) THEN
+  ELSE
+    Out.String("> Value of `foo` is: ");
+    Out.String(val); Out.Ln;
+  END;
+
+  Out.String("? Looking for object `baz`"); Out.Ln;
+  IF ~ ucl.FindKey(obj, "baz", objfoo) THEN
+    Out.String("! Could not FindKey `baz`"); Out.Ln;
+    HALT(1)
+  ELSE
+    Out.String("= Found object with key `baz`")
+  END;
+  Out.Ln;
+
+  IF ~ ucl.ToString(objfoo, val) THEN
+  ELSE
+    Out.String("> Value of `baz` is: ");
+    Out.String(val); Out.Ln;
+  END;
 END TestParser;
 
 BEGIN
