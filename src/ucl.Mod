@@ -11,6 +11,7 @@ TYPE
 
   TObject*      = SYSTEM.ADDRESS;
   StringPtr     = SYSTEM.ADDRESS;
+  TypeName*     = ARRAY 9 OF CHAR;
 
 
 CONST
@@ -18,7 +19,7 @@ CONST
   Array*    = 1;
   Integer*  = 2;
   Float*    = 3;
-  String    = 4;
+  String*   = 4;
   Boolean*  = 5;
   Time*     = 6;
   Userdata* = 7;
@@ -122,6 +123,24 @@ BEGIN
   StringPtrToString(objstrp, string);
 END ToString;
 
+(* These safe versions have an issue, TODO need fix
+PROCEDURE -uclObjectToStringSafe(object: TObject; VAR string: ARRAY OF CHAR): INTEGER
+"ucl_object_tostring_safe(object, string)";
+
+PROCEDURE ToStringSafe*(object: TObject; VAR string: ARRAY OF CHAR): BOOLEAN;
+BEGIN
+  RETURN uclObjectToStringSafe(object, string) # 0
+END ToStringSafe;
+*)
+
+PROCEDURE -uclObjectToInteger(object: TObject): INTEGER
+"ucl_object_toint(object)";
+
+PROCEDURE ToInteger*(object: TObject): INTEGER;
+BEGIN
+  RETURN uclObjectToInteger(object)
+END ToInteger;
+
 PROCEDURE -uclObjectKey(object: TObject): StringPtr
 "ucl_object_key(object)";
 
@@ -164,6 +183,29 @@ BEGIN
   END;
   RETURN FALSE
 END IterateObject;
+
+PROCEDURE -getType(object: TObject): INTEGER
+"ucl_object_type(object)";
+
+PROCEDURE GetType*(object: TObject): INTEGER;
+BEGIN
+  RETURN getType(object)
+END GetType;
+
+PROCEDURE GetTypeName*(object: TObject; VAR typeName: TypeName);
+BEGIN
+  CASE getType(object) OF
+      Object: typeName := "Object"
+    | Array : typeName := "Array"
+    | Integer   : typeName := "Integer"
+    | Float     : typeName := "Float"
+    | String    : typeName := "String"
+    | Boolean   : typeName := "Boolean"
+    | Time      : typeName := "Time"
+    | Userdata  : typeName := "Userdata"
+    | Null      : typeName := "Null"
+  END;
+END GetTypeName;
 
 BEGIN
   ParserDefault          := 0;

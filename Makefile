@@ -4,7 +4,7 @@ export CFLAGS=-I /usr/local/include/ -L /usr/local/lib -lucl
 #export LDFLAGS="-L /usr/local/lib -lucl"
 #export CFLAGS="-I /usr/local/include/"
 
-all:
+build:
 	@if [ ! -d build ]; then \
 		mkdir build; \
 	fi
