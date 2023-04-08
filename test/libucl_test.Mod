@@ -7,12 +7,13 @@ IMPORT
 
 PROCEDURE TestParser();
 VAR
-  parser : ucl.Parser;
-  path   : ARRAY 32 OF CHAR;
-  obj    : ucl.Object;
-  objfoo : ucl.Object;
-  key    : ARRAY 32 OF CHAR;
-  val    : ARRAY 32 OF CHAR;
+  parser  : ucl.Parser;
+  path    : ARRAY 32 OF CHAR;
+  obj     : ucl.TObject;
+  iter    : ucl.TObject;
+  objfoo  : ucl.TObject;
+  key     : ARRAY 32 OF CHAR;
+  val     : ARRAY 32 OF CHAR;
 
 BEGIN
   ucl.NewParser(parser, {0});
@@ -46,15 +47,16 @@ BEGIN
     Out.String("! Could not FindKey `foo`");
     HALT(1)
   ELSE
-    Out.String("= Found object with key `foo`")
+    Out.String("= Found object with key : ");
+    IF ucl.ObjectKey(objfoo, val) THEN
+      Out.String(val);
+    END;
   END;
   Out.Ln;
 
-  IF ~ ucl.ToString(objfoo, val) THEN
-  ELSE
-    Out.String("> Value of `foo` is: ");
-    Out.String(val); Out.Ln;
-  END;
+  Out.String("> Value of `foo` is: ");
+  ucl.ToString(objfoo, val);
+  Out.String(val); Out.Ln;
 
   Out.String("? Looking for object `baz`"); Out.Ln;
   IF ~ ucl.FindKey(obj, "baz", objfoo) THEN
@@ -65,10 +67,21 @@ BEGIN
   END;
   Out.Ln;
 
-  IF ~ ucl.ToString(objfoo, val) THEN
-  ELSE
-    Out.String("> Value of `baz` is: ");
-    Out.String(val); Out.Ln;
+  Out.String("> Value of `baz` is: ");
+  ucl.ToString(objfoo, val);
+  Out.String(val); Out.Ln;
+
+  Out.String("? Iterating over object"); Out.Ln;
+  WHILE ucl.IterateObject(obj, objfoo, iter, TRUE) DO
+    IF ucl.ObjectKey(objfoo, val) THEN
+      Out.String("Found key : ");
+      Out.String(val);
+      Out.Ln;
+      Out.String("Value is : ");
+      ucl.ToString(objfoo, val);
+      Out.String(val);
+      Out.Ln;
+    END;
   END;
 END TestParser;
 

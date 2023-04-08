@@ -9,9 +9,20 @@ TYPE
   ParserFlag    = HUGEINT;
   ParserFlags*  = SYSTEM.SET64;
 
-  Object*       = SYSTEM.ADDRESS;
+  TObject*      = SYSTEM.ADDRESS;
   StringPtr     = SYSTEM.ADDRESS;
 
+
+CONST
+  Object*   = 0;
+  Array*    = 1;
+  Integer*  = 2;
+  Float*    = 3;
+  String    = 4;
+  Boolean*  = 5;
+  Time*     = 6;
+  Userdata* = 7;
+  Null*     = 8;
 
 VAR
   ParserDefault-          : ParserFlag;
@@ -24,6 +35,22 @@ VAR
   ParserNoFileVars-       : ParserFlag;
 
 PROCEDURE -Aincludeucl '#include <ucl.h>';
+
+(* Internal Procedures *)
+PROCEDURE StringPtrToString(src: StringPtr; VAR dst: ARRAY OF CHAR);
+VAR
+  i     : INTEGER;
+  ch    : CHAR;
+  str   : ARRAY 64 OF CHAR;
+BEGIN
+  i := 0;
+  REPEAT
+    SYSTEM.GET(src + i, ch);
+    str[i] := ch;
+    INC(i)
+  UNTIL (ch = 0X) OR (i >= (LEN(str) - 1));
+  COPY(str, dst);
+END StringPtrToString;
 
 PROCEDURE -uclParserNew(flags: ParserFlag): Parser
 "ucl_parser_new(flags)";
@@ -52,12 +79,12 @@ BEGIN
   RETURN uclParserAddString(parser, string) # 0;
 END AddString;
 
-PROCEDURE -uclParserGetObject(parser: Parser): Object
+PROCEDURE -uclParserGetObject(parser: Parser): TObject
 "ucl_parser_get_object(parser)";
 
-PROCEDURE GetObject*(parser: Parser; VAR object: Object): BOOLEAN;
+PROCEDURE GetObject*(parser: Parser; VAR object: TObject): BOOLEAN;
 VAR
-  objectInternal : Object;
+  objectInternal : TObject;
 BEGIN
   objectInternal := uclParserGetObject(parser);
   IF objectInternal # 0 THEN
@@ -68,12 +95,12 @@ BEGIN
   END;
 END GetObject;
 
-PROCEDURE -uclObjectFindKey(object: Object; key: ARRAY OF CHAR): Object
+PROCEDURE -uclObjectFindKey(object: TObject; key: ARRAY OF CHAR): TObject
 "ucl_object_find_key(object, key)";
 
-PROCEDURE FindKey*(objectIn: Object; key: ARRAY OF CHAR; VAR objectOut: Object ): BOOLEAN;
+PROCEDURE FindKey*(objectIn: TObject; key: ARRAY OF CHAR; VAR objectOut: TObject ): BOOLEAN;
 VAR
-  objectInternal : Object;
+  objectInternal : TObject;
 BEGIN
   objectInternal := uclObjectFindKey(objectIn, key);
   IF objectInternal # 0 THEN
@@ -84,26 +111,59 @@ BEGIN
   END;
 END FindKey;
 
-PROCEDURE -uclObjectToString(object: Object): StringPtr
+PROCEDURE -uclObjectToString(object: TObject): StringPtr
 "ucl_object_tostring(object)";
 
-PROCEDURE ToString*(object: Object; VAR string: ARRAY OF CHAR): BOOLEAN;
+PROCEDURE ToString*(object: TObject; VAR string: ARRAY OF CHAR);
 VAR
-  objstr  : ARRAY 64 OF CHAR;
-  i       : INTEGER;
-  ch      : CHAR;
   objstrp : StringPtr;
 BEGIN
-  i := 0;
   objstrp := uclObjectToString(object);
-  REPEAT
-    SYSTEM.GET(objstrp + i, ch);
-    objstr[i] := ch;
-    INC(i)
-  UNTIL (ch = 0X) OR (i >= LEN(objstr) - 1);
-  COPY(objstr, string);
-  RETURN TRUE
+  StringPtrToString(objstrp, string);
 END ToString;
+
+PROCEDURE -uclObjectKey(object: TObject): StringPtr
+"ucl_object_key(object)";
+
+PROCEDURE ObjectKey*(object: TObject; VAR string: ARRAY OF CHAR): BOOLEAN;
+VAR
+  objkeyp : StringPtr;
+BEGIN
+  objkeyp := uclObjectKey(object);
+  IF objkeyp # 0 THEN
+    StringPtrToString(objkeyp, string);
+    RETURN TRUE
+  END;
+  RETURN FALSE
+END ObjectKey;
+
+PROCEDURE -uclIterateObject(object: TObject; VAR iterator: TObject; expandValues: INTEGER): TObject
+"ucl_iterate_object(object, iterator, ev)";
+
+PROCEDURE IterateObject*(
+  TopObject: TObject;
+  VAR ResObject: TObject;
+  VAR iterator: TObject;
+  expandValues: BOOLEAN): BOOLEAN;
+
+VAR
+  objectInternal    : TObject;
+  iteratorInternal  : TObject;
+  ev                : INTEGER;
+BEGIN
+  ev := 0;
+  IF expandValues THEN
+    ev := 1
+  END;
+  iteratorInternal := iterator;
+  objectInternal := uclIterateObject(TopObject, iteratorInternal, ev);
+  IF objectInternal # 0 THEN
+    iterator  := iteratorInternal;
+    ResObject := objectInternal;
+    RETURN TRUE
+  END;
+  RETURN FALSE
+END IterateObject;
 
 BEGIN
   ParserDefault          := 0;
